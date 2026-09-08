@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="es" class="dark overflow-x-hidden scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pechypets | Tienda Virtual & Catálogo Interactivo</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            950: '#030c1e',
+                            900: '#081b3b',
+                            800: '#0e2852',
+                            700: '#17376c'
+                        },
+                        brandPurple: {
+                            400: '#c084fc',
+                            500: '#a855f7',
+                            600: '#9333ea',
+                            700: '#7e22ce',
+                            800: '#6b21a8'
+                        }
+                    },
+                    boxShadow: {
+                        'neon-purple': '0 0 20px -3px rgba(168, 85, 247, 0.35)',
+                        'neon-purple-lg': '0 0 30px -2px rgba(168, 85, 247, 0.55)'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden !important;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #051329;
+            color: #f3f4f6;
+        }
+        .purple-glow-border {
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            transition: all 0.3s ease;
+        }
+        .purple-glow-border:hover {
+            border-color: rgba(168, 85, 247, 0.8);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #081b3b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #7e22ce;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a855f7;
+        }
+        .cart-drawer-overlay {
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .cart-drawer-content {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #toastNotification {
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-brandPurple-600 selection:text-white w-full">
+
+    <div id="toastNotification" class="fixed top-20 right-4 z-50 transform translate-x-full opacity-0 pointer-events-none bg-navy-900 border border-brandPurple-500/60 text-white px-4 py-3 rounded-xl shadow-neon-purple flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-brandPurple-900/80 border border-brandPurple-500 flex items-center justify-center shrink-0">
+            <i class="fas fa-cart-plus text-brandPurple-300"></i>
+        </div>
+        <div>
+            <h4 id="toastTitle" class="text-xs font-bold text-white">¡Producto añadido!</h4>
+            <p id="toastMessage" class="text-[11px] text-gray-300">Guardado en tu carrito de compras.</p>
+        </div>
+    </div>
+    <div class="bg-gradient-to-r from-navy-900 via-brandPurple-800 to-navy-900 text-[11px] sm:text-xs py-1.5 px-2 sm:px-3 border-b border-brandPurple-500/30 flex items-center justify-between w-full relative z-40">
+        <div class="hidden sm:flex items-center gap-2">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span> Tienda Virtual
+            </span>
+            <span class="text-gray-300 hidden md:inline">Envíos Nacionales por ZOOM, MRW y TEALCA (Cobro en Destino)</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 sm:gap-2 ml-auto w-full sm:w-auto justify-end">
+            <div class="relative inline-block text-left">
+                <button onclick="toggleSocialMenu(event)" id="socialBtn" class="flex items-center gap-1 bg-brandPurple-900/90 hover:bg-brandPurple-800 text-white border border-brandPurple-500/50 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95">
+                    <i class="fas fa-share-nodes text-brandPurple-300 text-xs"></i>
+                    <span>Redes Sociales</span>
+                    <i class="fas fa-chevron-down text-[9px] ml-0.5 transition-transform duration-200" id="socialChevron"></i>
+                </button>
+                
+                <div id="socialDropdown" class="hidden absolute right-0 mt-2 w-44 bg-navy-900 border border-brandPurple-500/40 rounded-xl shadow-2xl py-2 z-50 transition-all transform origin-top-right">
+                    <a href="https://instagram.com/pechypets" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-200 hover:bg-brandPurple-900/50 hover:text-brandPurple-300 transition-colors">
+                        <i class="fab fa-instagram text-pink-400 text-sm w-4 text-center"></i> Instagram
+                    </a>
+                    <a href="https://www.facebook.com/profile.php?id=61585296099038" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-200 hover:bg-brandPurple-900/50 hover:text-blue-400 transition-colors">
+                        <i class="fab fa-facebook text-blue-500 text-sm w-4 text-center"></i> Facebook
+                    </a>
+                    <a href="https://tiktok.com/@pechypets" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-200 hover:bg-brandPurple-900/50 hover:text-brandPurple-300 transition-colors">
+                        <i class="fab fa-tiktok text-white text-sm w-4 text-center"></i> TikTok
+                    </a>
+                    <a href="https://wa.me/584124928723" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-200 hover:bg-brandPurple-900/50 hover:text-emerald-400 transition-colors">
+                        <i class="fab fa-whatsapp text-emerald-400 text-sm w-4 text-center"></i> WhatsApp
+                    </a>
+                </div>
+            </div>
+
+            <button id="adminAuthBtn" onclick="toggleAdminSession()" class="hidden items-center gap-1 bg-navy-800 hover:bg-navy-700 text-gray-300 hover:text-white border border-gray-700 text-[11px] sm:text-xs px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl transition-all shrink-0">
+                <i id="adminAuthIcon" class="fas fa-lock text-brandPurple-400 text-xs"></i>
+                <span id="adminAuthText">Admin</span>
+            </button>
+        </div>
+    </div>
+
+    <header class="sticky top-0 z-30 bg-navy-900/90 backdrop-blur-md border-b border-gray-800 shadow-lg w-full">
+        <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-2 sm:py-3 flex items-center justify-between gap-1 sm:gap-3 w-full">
+            
+           <a href="#" class="flex items-center gap-1.5 sm:gap-3 group shrink min-w-0">
+                <div class="bg-[#081b3b] p-1 sm:p-2 rounded-xl border border-cyan-500/30 backdrop-blur-md flex items-center justify-center shadow-md shrink-0">
+                    <img src="logo.svg" alt="Pechypets Logo" class="h-6 sm:h-12 w-auto object-contain" style="image-rendering: high-quality;" onerror="this.onerror=null; this.src='https://placehold.co/180x60/081b3b/c084fc?text=Pechypets';">
+                </div>
+                <div class="flex flex-col justify-center min-w-0 shrink">
+                    <div class="flex items-center gap-1">
+                        <span class="text-sm sm:text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-100 to-brandPurple-400 leading-none truncate">Pechypets</span>
+                        <span class="text-[7px] sm:text-[10px] uppercase tracking-widest font-bold px-1 py-0.5 rounded bg-brandPurple-900/80 text-brandPurple-300 border border-brandPurple-500/30 leading-none shrink-0">Virtual</span>
+                    </div>
+                    <p class="block text-[8px] sm:text-[11px] text-gray-400 font-medium mt-0.5 leading-none truncate">Peces & Mascotas | Venezuela</p>
+                </div>
+            </a>
+
+            <div class="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">
+                <input type="hidden" id="bcvRateInput" value="787.63">
+                
+                <button onclick="toggleCartDrawer(true)" class="relative flex items-center gap-1.5 bg-navy-800 hover:bg-brandPurple-900/60 text-white border border-brandPurple-500/40 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all shadow-md active:scale-95 group shrink-0">
+                    <i class="fas fa-shopping-cart text-brandPurple-400 text-xs sm:text-base group-hover:scale-110 transition-transform"></i>
+                    <span class="hidden sm:inline text-xs font-bold text-gray-200">Carrito</span>
+                    <span id="cartBadge" class="bg-gradient-to-r from-brandPurple-600 to-indigo-600 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full border border-brandPurple-400 shadow-neon-purple min-w-[18px] text-center leading-none">0</span>
+                </button>
+
+                <button id="adminAddBtn" onclick="openProductModal()" class="hidden items-center gap-1 bg-gradient-to-r from-brandPurple-600 to-indigo-600 hover:from-brandPurple-500 hover:to-indigo-500 text-white font-bold text-xs px-2 py-1.5 sm:px-3.5 sm:py-2 rounded-xl transition-all shadow-neon-purple active:scale-95 shrink-0">
+                    <i class="fas fa-plus-circle text-xs sm:text-sm"></i>
+                    <span class="hidden sm:inline text-[11px] sm:text-sm font-bold whitespace-nowrap">Nuevo Producto</span>
+                    <span class="inline sm:hidden text-[10px] font-bold">Nuevo</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="cartDrawerOverlay" class="cart-drawer-overlay fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-sm opacity-0 invisible flex justify-end">
+        <div id="cartDrawerContent" class="cart-drawer-content w-full max-w-md bg-navy-900 border-l border-brandPurple-500/30 h-full flex flex-col shadow-2xl transform translate-x-full relative">
+            
+            <div class="p-4 sm:p-5 border-b border-gray-800 flex items-center justify-between bg-navy-950">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-brandPurple-900/60 border border-brandPurple-500/40 flex items-center justify-center">
+                        <i class="fas fa-shopping-bag text-brandPurple-400 text-base"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            Tu Carrito <span id="cartTotalItemsText" class="text-xs text-brandPurple-300 font-semibold">(0 items)</span>
+                        </h3>
+                        <p class="text-[11px] text-gray-400">Tus productos se guardan para tus próximas visitas</p>
+                    </div>
+                </div>
+                <button onclick="toggleCartDrawer(false)" class="w-8 h-8 rounded-lg bg-navy-800 hover:bg-navy-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+
+            <div id="cartItemsList" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+
+            <div id="cartFooter" class="p-4 sm:p-5 border-t border-gray-800 bg-navy-950 space-y-3">
+                <div class="space-y-1.5">
+                    <div class="flex justify-between items-center text-xs text-gray-400">
+                        <span>Subtotal en USD ($):</span>
+                        <span id="cartSubtotalUSD" class="text-sm font-bold text-white">$0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-brandPurple-300 font-medium">Subtotal Estimado en Bs.:</span>
+                        <span id="cartSubtotalBS" class="text-base font-black text-emerald-400">Bs. 0,00</span>
+                    </div>
+                    <div class="text-[10px] text-gray-500 text-right">
+                        Calculado con la Tasa BCV Oficial del Día.
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2 pt-2">
+                    <a id="cartWhatsAppOrderBtn" href="#" target="_blank" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-emerald-500/20 active:scale-95">
+                        <i class="fab fa-whatsapp text-lg"></i>
+                        <span>Consultar Pedido Completo por WhatsApp</span>
+                    </a>
+
+                    <button onclick="clearCart()" class="w-full py-2 px-3 rounded-xl bg-navy-900 hover:bg-red-950/40 text-gray-400 hover:text-red-400 border border-gray-800 hover:border-red-500/30 text-xs font-semibold transition-all flex items-center justify-center gap-1.5">
+                        <i class="fas fa-trash-alt text-[11px]"></i>
+                        <span>Vaciar Carrito</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <section class="relative overflow-hidden bg-gradient-to-b from-navy-900 via-navy-950 to-navy-950 border-b border-gray-800/80 py-10 md:py-16 w-full">
+        <div class="absolute top-0 left-1/4 w-96 h-96 bg-brandPurple-600/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+            <span class="inline-block px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold uppercase tracking-wider bg-brandPurple-500/10 text-brandPurple-300 border border-brandPurple-500/30 mb-4">
+                <i class="fas fa-store text-brandPurple-400 mr-1.5"></i> Tienda Virtual • Envíos a Nivel Nacional
+            </span>
+            <h1 class="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-tight">
+                Acuarismo y Productos para tus Mascotas en <span class="bg-clip-text text-transparent bg-gradient-to-r from-brandPurple-400 via-purple-300 to-indigo-400">Venezuela</span>
+            </h1>
+            <p class="mt-4 text-gray-300 text-xs sm:text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+                Explora peces de agua dulce, acuarios, mini peceras, accesorios, acondicionadores y salud acuática. Encuentra también variedad en jaulas, accesorios, medicamentos y más!! para Perros, Aves y pequeños Roedores.
+            </p>
+
+            <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto text-xs text-gray-300 font-medium">
+                <div class="bg-navy-900/80 border border-brandPurple-500/20 p-3 rounded-xl flex items-center justify-center gap-2">
+                    <i class="fas fa-truck-fast text-emerald-400 text-base"></i>
+                    <span>ZOOM / MRW & TEALCA Cobro Destino</span>
+                </div>
+                <div class="bg-navy-900/80 border border-brandPurple-500/20 p-3 rounded-xl flex items-center justify-center gap-2">
+                    <i class="fas fa-calculator text-indigo-400 text-base"></i>
+                    <span>Tasa BCV Automatizada</span>
+                </div>
+                <div class="bg-navy-900/80 border border-brandPurple-500/20 p-3 rounded-xl flex items-center justify-center gap-2">
+                    <i class="fab fa-whatsapp text-emerald-400 text-base"></i>
+                    <span>Pedidos Directos por WA</span>
+                </div>
+            </div>
+
+            <div class="mt-6 text-center">
+                <a href="#guia-compra" class="inline-flex items-center gap-2 text-xs font-semibold text-brandPurple-300 hover:text-white transition-all py-2 px-4 rounded-xl bg-navy-900/80 border border-brandPurple-500/30 hover:border-brandPurple-500/60 shadow-md group">
+                    <span>¿Primera vez comprando? Ver guía paso a paso</span>
+                    <i class="fas fa-arrow-down text-brandPurple-400 group-hover:translate-y-0.5 transition-transform text-[11px]"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 flex-grow w-full">
+        <div class="space-y-6 mb-8">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-4 bg-navy-900 p-3 rounded-2xl border border-brandPurple-500/30">
+                <div class="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto">
+                    <button id="tabAll" onclick="switchModule('all')" class="module-tab w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-gradient-to-r from-brandPurple-600 to-indigo-600 text-white shadow-neon-purple text-center">
+                        <i class="fas fa-border-all mr-1.5"></i> Todos los Productos
+                    </button>
+                    <button id="tabWater" onclick="switchModule('agua')" class="module-tab w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all text-gray-300 hover:text-white hover:bg-navy-800 text-center">
+                        <i class="fas fa-water text-blue-400 mr-1.5"></i> Módulo Acuático
+                    </button>
+                    <button id="tabLand" onclick="switchModule('tierra')" class="module-tab w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all text-gray-300 hover:text-white hover:bg-navy-800 text-center">
+                        <i class="fas fa-paw text-amber-400 mr-1.5"></i> Módulo Terrestre-Aire
+                    </button>
+                </div>
+                
+                <span class="text-xs text-gray-400 hidden lg:inline-block px-3">
+                    <i class="fas fa-info-circle text-brandPurple-400 mr-1"></i> Peces vivos exhibidos únicamente en Módulo Acuático
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <div class="relative md:col-span-1">
+                    <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="searchInput" oninput="filterProducts()" placeholder="¿Qué estas Buscando?" 
+                        class="w-full bg-navy-900 border border-gray-700 focus:border-brandPurple-500 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-brandPurple-500 transition-all shadow-inner">
+                </div>
+
+                <div class="flex items-center gap-3 md:col-span-2 justify-end flex-wrap sm:flex-nowrap">
+                    <select id="stockFilter" onchange="filterProducts()" class="w-full sm:w-auto bg-navy-900 border border-gray-700 text-gray-300 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-brandPurple-500">
+                        <option value="all">Ver Disponibilidad (Todos)</option>
+                        <option value="Disponible">Únicamente Disponibles</option>
+                        <option value="Bajo Pedido / Consultar Stock">Bajo Pedido / Consultar</option>
+                    </select>
+
+                    <select id="categoryFilter" onchange="filterProducts()" class="w-full sm:w-auto bg-navy-900 border border-gray-700 text-gray-300 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-brandPurple-500">
+                        <option value="all">Todas las Categorías</option>
+                        <option value="Pez Vivo">Peces Vivos</option>
+                        <option value="Acuarios & más">Acuarios, Filtros, Accesorios, Y más...</option>
+                        <option value="Alimento Acuático">Alimentos de Peces </option>
+                        <option value="Perros">Perros (Accesorios, Juguetes, Ropa, Casas...)</option>
+                        <option value="Gatos">Gatos (Accesorios, juguetes...)</option>
+                        <option value="Aves & Roedores">Aves & Roedores (Juguetes, Accesorios, Alimentos, y más</option>
+                        <option value="Higiene & Salud">Higiene & Salud</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="loadingSpinner" class="text-center py-20">
+            <i class="fas fa-spinner fa-spin text-4xl text-brandPurple-500 mb-4"></i>
+            <p class="text-sm text-gray-400">Cargando productos...</p>
+        </div>
+
+        <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden"></div>
+
+        <div id="loadMoreContainer" class="hidden text-center mt-10">
+            <button id="loadMoreBtn" onclick="loadMoreProducts()" class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-navy-900 via-brandPurple-950 to-navy-900 hover:from-brandPurple-900 hover:to-indigo-900 border border-brandPurple-500/40 hover:border-brandPurple-500/80 text-brandPurple-300 hover:text-white font-bold text-xs sm:text-sm transition-all shadow-lg hover:shadow-neon-purple active:scale-95 inline-flex items-center justify-center gap-2.5">
+                <i class="fas fa-plus-circle text-brandPurple-400 text-sm"></i>
+                <span>Cargar más productos</span>
+                <i class="fas fa-chevron-down text-xs ml-1"></i>
+            </button>
+        </div>
+
+        <div id="noResults" class="hidden text-center py-16 bg-navy-900/50 rounded-2xl border border-gray-800">
+            <i class="fas fa-search text-4xl text-brandPurple-400/50 mb-3"></i>
+            <h3 class="text-lg font-bold text-gray-200">No se encontraron productos</h3>
+            <p class="text-sm text-gray-400 mt-1">Intenta ajustando tu búsqueda o cambiando los filtros seleccionados.</p>
+        </div>
+
+        <section id="guia-compra" class="mt-16 sm:mt-20 pt-10 border-t border-gray-800 scroll-mt-24">
+            <div class="text-center mb-10">
+                <span class="text-xs font-bold uppercase tracking-widest text-brandPurple-400">Guía de Compra Online</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white mt-1">¿Cómo Comprar en Pechypets?</h2>
+                <p class="text-gray-400 text-sm mt-2 max-w-xl mx-auto">Proceso sencillo, transparente y seguro para recibir tus productos en cualquier lugar de Venezuela 😊</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-navy-900 border border-brandPurple-500/20 p-6 rounded-2xl relative group hover:border-brandPurple-500/60 transition-all">
+                    <div class="w-12 h-12 rounded-xl bg-brandPurple-900/60 border border-brandPurple-500/40 text-brandPurple-300 font-extrabold text-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">1</div>
+                    <h3 class="text-lg font-bold text-white mb-2">Explora y Agrega</h3>
+                    <p class="text-sm text-gray-300 leading-relaxed">Navega por nuestro catálogo y añade tus productos o peces favoritos al carrito de compras</p>
+                </div>
+
+                <div class="bg-navy-900 border border-brandPurple-500/20 p-6 rounded-2xl relative group hover:border-brandPurple-500/60 transition-all">
+                    <div class="w-12 h-12 rounded-xl bg-brandPurple-900/60 border border-brandPurple-500/40 text-brandPurple-300 font-extrabold text-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">2</div>
+                    <h3 class="text-lg font-bold text-white mb-2">Envía tu Pedido por WA</h3>
+                    <p class="text-sm text-gray-300 leading-relaxed">Envía el listado completo desde el carrito o consulta un artículo específico de forma directa por WhatsApp.</p>
+                </div>
+
+                <div class="bg-navy-900 border border-brandPurple-500/20 p-6 rounded-2xl relative group hover:border-brandPurple-500/60 transition-all">
+                    <div class="w-12 h-12 rounded-xl bg-brandPurple-900/60 border border-brandPurple-500/40 text-brandPurple-300 font-extrabold text-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">3</div>
+                    <h3 class="text-lg font-bold text-white mb-2">Recibe por ZOOM, MRW o TEALCA</h3>
+                    <p class="text-sm text-gray-300 leading-relaxed">Despachamos de manera oportuna a través de ZOOM, MRW o TEALCA con modalidad Cobro en Destino a la agencia de tu preferencia.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <a href="https://wa.me/584124928723?text=Hola%20Pechypets,%20deseo%20hacer%20una%20consulta." target="_blank" 
+       class="fixed bottom-6 right-6 z-40 bg-emerald-500 hover:bg-emerald-400 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:shadow-emerald-500/50 transition-all hover:scale-110 group"
+       title="Consultar por WhatsApp">
+        <i class="fab fa-whatsapp text-3xl"></i>
+        <span class="absolute right-16 bg-navy-900 text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-emerald-500/30 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-md pointer-events-none">
+            ¡Escríbenos por WhatsApp!
+        </span>
+    </a>
+
+    <div id="cookieBanner" class="fixed bottom-0 left-0 right-0 z-50 bg-navy-900/95 border-t border-brandPurple-500/40 p-4 backdrop-blur-md shadow-2xl transition-all duration-300">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-cookie-bite text-brandPurple-400 text-xl"></i>
+                <p class="text-gray-300 leading-relaxed">
+                    Utilizamos almacenamiento local para guardar tus preferencias de catálogo y productos en el carrito. No rastreamos tus datos personales. Al continuar navegando, aceptas nuestras <a href="#legalSection" class="text-brandPurple-400 underline hover:text-white">Políticas, Términos y Privacidad</a>.
+                </p>
+            </div>
+            <button onclick="acceptCookies()" class="w-full sm:w-auto px-5 py-2 rounded-xl bg-brandPurple-600 hover:bg-brandPurple-500 text-white font-bold whitespace-nowrap transition-all shadow-md">
+                Aceptar
+            </button>
+        </div>
+    </div>
+
+    <div id="customConfirmModal" class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-navy-900 border border-brandPurple-500/40 w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center relative">
+            <div class="w-12 h-12 bg-amber-500/20 rounded-xl border border-amber-500/40 flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-exclamation-triangle text-amber-400 text-xl"></i>
+            </div>
+            <h3 id="confirmModalTitle" class="text-lg font-bold text-white mb-2">¿Confirmar Acción?</h3>
+            <p id="confirmModalMessage" class="text-xs text-gray-300 mb-6 leading-relaxed">¿Estás seguro de que deseas realizar esta acción?</p>
+
+            <div class="flex items-center justify-center gap-3">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 px-4 rounded-xl bg-navy-800 hover:bg-navy-700 text-gray-300 border border-gray-700 text-xs font-semibold transition-all">
+                    Cancelar
+                </button>
+                <button id="confirmModalActionBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-brandPurple-600 to-indigo-600 hover:from-brandPurple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-neon-purple transition-all">
+                    Aceptar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle" class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-navy-900 border border-brandPurple-500/40 w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
+            <button onclick="closeLoginModal()" aria-label="Cerrar ventana de acceso" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-brandPurple-900/50 rounded-xl border border-brandPurple-500/40 flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-user-shield text-brandPurple-400 text-xl"></i>
+                </div>
+                <h3 id="loginModalTitle" class="text-xl font-bold text-white">Acceso Administrador</h3>
+                <p class="text-xs text-gray-400 mt-1">Solo Personal Autorizado</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Correo Electrónico</label>
+                    <input type="email" id="loginEmail" required placeholder="admin@pechypets.com" class="w-full bg-navy-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-brandPurple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Contraseña</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full bg-navy-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-brandPurple-500">
+                </div>
+                <p id="loginError" class="text-xs text-red-400 hidden text-center"></p>
+                <button type="submit" id="loginSubmitBtn" class="w-full py-3 bg-gradient-to-r from-brandPurple-600 to-indigo-600 hover:from-brandPurple-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl transition-all shadow-neon-purple flex justify-center items-center gap-2">
+                    <span>Iniciar Sesión</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="productModal" class="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-navy-900 border border-brandPurple-500/40 w-full max-w-2xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto my-auto">
+            <button onclick="closeProductModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-6 border-b border-gray-800 pb-4">
+                <div class="w-10 h-10 bg-brandPurple-900/50 rounded-xl border border-brandPurple-500/40 flex items-center justify-center shrink-0">
+                    <i id="modalIcon" class="fas fa-box text-brandPurple-400"></i>
+                </div>
+                <div>
+                    <h3 id="modalTitle" class="text-lg font-bold text-white">Agregar Producto</h3>
+                    <p class="text-xs text-gray-400">Completa los campos para publicar en el catálogo</p>
+                </div>
+            </div>
+
+            <form onsubmit="handleSaveProduct(event)" class="space-y-4">
+                <input type="hidden" id="prodId">
+                <input type="hidden" id="existingImageUrl">
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Nombre / Título del Producto *</label>
+                    <input type="text" id="prodName" required placeholder="Ej. Pez Cirujano Azul" class="w-full bg-navy-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-brandPurple-500">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Precio Base en USD ($) *</label>
+                        <input type="number" step="0.01" id="prodPriceUSD" required placeholder="25.00" class="w-full bg-navy-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-brandPurple-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Módulo *</label>
+                        <select id="prodModule" required class="w-full bg-navy-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-brandPurple-500">
+                            <option value="agua">Módulo Acuático</option>
+                            <option value="tierra">Módulo Terrestre-Aire</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Categoría *</label>
+                        <select id="prodCategory" required class="w-full bg-navy-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-brandPurple-500">
+                            <option value="Pez Vivo">Pez Vivo</option>
+                            <option value="Acuarios y mas">Acuarios & Filtros</option>
+                            <option value="Alimento Acuático">Alimento Acuático</option>
+                            <option value="Perros">Perros</option>
+                            <option value="Gatos">Gatos</option>
+                            <option value="Aves & Roedores">Aves & Roedores</option>
+                            <option value="Higiene & Salud">Higiene & Salud</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Disponibilidad *</label>
+                        <select id="prodStock" required class="w-full bg-navy-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-brandPurple-500">
+                            <option value="Disponible">Disponible</option>
+                            <option value="Bajo Pedido / Consultar Stock">Bajo Pedido / Consultar Stock</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Cantidad Físicamente Disponible en Stock (Unidades) *</label>
+                    <input type="number" min="0" id="prodStockQty" required placeholder="Ej. 4" class="w-full bg-navy-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-brandPurple-500">
+                    <span class="text-[10px] text-gray-400 mt-1 block">Límite máximo de unidades que un cliente podrá añadir al carrito.</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Descripción del Producto</label>
+                    <textarea id="prodDescription" rows="3" placeholder="Detalles, características, tamaño o recomendaciones..." class="w-full bg-navy-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-brandPurple-500"></textarea>
+                </div>
+
+                <div class="bg-navy-950 p-4 rounded-xl border border-gray-800 space-y-3">
+                    <label class="block text-xs font-bold text-brandPurple-300 uppercase tracking-wider">Imagen del Producto</label>
+                    
+                    <div>
+                        <span class="block text-[11px] text-gray-400 mb-1">Opción A: Subir Foto desde Galería / Cámara</span>
+                        <input type="file" id="prodImageFile" accept="image/*" class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brandPurple-900/60 file:text-brandPurple-300 hover:file:bg-brandPurple-800 cursor-pointer">
+                    </div>
+
+                    <div class="relative flex py-1 items-center">
+                        <div class="flex-grow border-t border-gray-800"></div>
+                        <span class="flex-shrink mx-2 text-[10px] text-gray-500 uppercase">o bien</span>
+                        <div class="flex-grow border-t border-gray-800"></div>
+                    </div>
+
+                    <div>
+                        <span class="block text-[11px] text-gray-400 mb-1">Opción B: Pegar Enlace / URL de la imagen</span>
+                        <input type="url" id="prodImageUrl" placeholder="https://ejemplo.com/foto.jpg" class="w-full bg-navy-900 border border-gray-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-brandPurple-500">
+                    </div>
+                </div>
+
+                <p id="modalError" class="text-xs text-red-400 hidden text-center"></p>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-800">
+                    <button type="button" onclick="closeProductModal()" class="px-4 py-2.5 rounded-xl border border-gray-700 text-gray-300 hover:text-white text-xs font-semibold">Cancelar</button>
+                    <button type="submit" id="saveProdBtn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brandPurple-600 to-indigo-600 hover:from-brandPurple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-neon-purple flex items-center gap-2">
+                        <span>Guardar Producto</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="bg-navy-950 border-t border-gray-800 text-gray-400 text-sm mt-16 w-full overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center gap-2.5 sm:gap-3 mb-3">
+                        <div class="flex items-center justify-center">
+                            <img src="logo.svg" alt="Pechypets Logo" class="h-10 sm:h-14 w-auto object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.35)]" onerror="this.onerror=null; this.src='https://placehold.co/180x60/081b3b/c084fc?text=Pechypets';">
+                        </div>
+                        <span class="text-lg sm:text-xl font-black text-white">Pechypets</span>
+                    </div>
+                    <p class="text-xs text-gray-400 leading-relaxed mb-4">
+                        Tienda Virtual especializada en Acuarismo, Peces, y Suministros de buena Calidad para mascotas en Venezuela.
+                    </p>
+                    <div class="inline-block px-3 py-1 bg-navy-900 border border-brandPurple-500/30 rounded-lg text-xs text-brandPurple-300">
+                        <i class="fas fa-truck text-brandPurple-400 mr-1"></i> Envíos Nacionales: ZOOM, MRW & TEALCA (COD)
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold text-sm mb-3 uppercase tracking-wider">Ecosistemas</h4>
+                    <ul class="space-y-2 text-xs">
+                        <li><a href="#" onclick="switchModule('agua')" class="hover:text-brandPurple-400 transition-colors"><i class="fas fa-chevron-right text-[10px] text-brandPurple-500 mr-1"></i> Módulo Acuático (Acuarios, Accesorios, Peces Vivos, y más...)</a></li>
+                        <li><a href="#" onclick="switchModule('tierra')" class="hover:text-brandPurple-400 transition-colors"><i class="fas fa-chevron-right text-[10px] text-brandPurple-500 mr-1"></i> Módulo Terrestre-Aire (Perros, Gatos, Aves y Roedores)</a></li>
+                        <li><a href="https://wa.me/584124928723" target="_blank" class="hover:text-emerald-400 transition-colors"><i class="fas fa-chevron-right text-[10px] text-emerald-500 mr-1"></i> Asesoría Técnica de Acuarios</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold text-sm mb-3 uppercase tracking-wider">Redes & Contacto</h4>
+                    <ul class="space-y-2.5 text-xs mb-4">
+                        <li class="flex items-center gap-2">
+                            <i class="fab fa-whatsapp text-emerald-400 text-sm"></i>
+                            <a href="https://wa.me/584124928723" target="_blank" class="hover:text-white transition-colors">+58 412-4928723</a>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fab fa-instagram text-pink-400 text-sm"></i>
+                            <a href="https://instagram.com/pechypets" target="_blank" class="hover:text-white transition-colors">@pechypets</a>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fab fa-facebook text-blue-400 text-sm"></i>
+                            <a href="https://www.facebook.com/profile.php?id=61585296099038" target="_blank" class="hover:text-white transition-colors">Pechypets Pechypets</a>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fab fa-tiktok text-white text-sm"></i>
+                            <a href="https://tiktok.com/@pechypets" target="_blank" class="hover:text-white transition-colors">@pechypets</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="legalSection" class="border-t border-gray-800 pt-8 mt-8 text-xs text-gray-400 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <h5 class="text-white font-bold mb-2"><i class="fas fa-scale-balanced text-brandPurple-400 mr-1.5"></i> Términos de Servicio</h5>
+                    <p class="leading-relaxed">Los pedidos se procesan bajo confirmación de disponibilidad previa a través de WhatsApp. Los precios mostrados en Bolívares se calculan en base a la tasa oficial del Banco Central de Venezuela (BCV).</p>
+                </div>
+                <div>
+                    <h5 class="text-white font-bold mb-2"><i class="fas fa-shield-halved text-emerald-400 mr-1.5"></i> Política de Envíos & Garantía</h5>
+                    <p class="leading-relaxed">Envíos mediante ZOOM, MRW y TEALCA con modalidad Cobro en Destino (COD). "Para especies acuáticas vivas (Peces), No realizamos Envios Nacionales, se cunsulta un día con el cliente, para que llegue a nuestra ubicación "Monagas" .</p>
+                </div>
+                <div>
+                    <h5 class="text-white font-bold mb-2"><i class="fas fa-user-lock text-indigo-400 mr-1.5"></i> Privacidad de Datos</h5>
+                    <p class="leading-relaxed">Pechypets respeta tu privacidad. La información suministrada al realizar consultas únicamente se utiliza para la coordinación de envíos y atención comercial directa sin sesión a terceros.</p>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-800 pt-6 mt-6 text-center text-xs text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-2">
+                <p>&copy; 2026 Pechypets - Tienda Virtual Venezuela. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        if (localStorage.getItem("pechypets_cookies_accepted") === "true") {
+            const banner = document.getElementById("cookieBanner");
+            if (banner) banner.classList.add("hidden");
+        }
+    })();
+
+    const SUPABASE_URL = 'https://neoqnvvcmigcsvzwhvlq.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_AxNWx5-vH8_bxrF9fZgDjw_0xereStG';
+
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const DEFAULT_IMAGE_PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='18' height='18' rx='2' ry='2'/><circle cx='8.5' cy='8.5' r='1.5'/><polyline points='21 15 16 10 5 21'/></svg>";
+
+    let products = [];
+    let currentFilteredProducts = [];
+    let currentModule = "all";
+    let currentUser = null;
+    let visibleCount = 15;
+    
+    let cart = [];
+    const CART_STORAGE_KEY = "pechypets_cart_items";
+
+    // Función auxiliar para obtener la cantidad en stock de forma precisa sin forzar siempre 10
+    function getProductStockQty(prod) {
+        if (!prod) return 0;
+        if (prod.stock_quantity !== undefined && prod.stock_quantity !== null) {
+            return parseInt(prod.stock_quantity);
+        }
+        if (prod.stockQuantity !== undefined && prod.stockQuantity !== null) {
+            return parseInt(prod.stockQuantity);
+        }
+        return 0;
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        checkCookieConsent();
+        await checkUserSession();
+        loadCartFromStorage();
+
+        try {
+            const response = await fetch("https://ve.dolarapi.com/v1/dolares/oficial");
+            if (!response.ok) throw new Error("Error en respuesta de API");
+            const data = await response.json();
+            if (data && data.promedio) {
+                document.getElementById("bcvRateInput").value = data.promedio;
+            }
+        } catch (error) {
+            console.warn("No se pudo obtener la tasa en vivo. Se usará la tasa de respaldo predeterminada.");
+        }
+
+        await fetchProductsFromSupabase();
+
+        document.getElementById("bcvRateInput").addEventListener("input", () => {
+            filterProducts();
+            renderCartDrawer();
+        });
+    });
+
+    function showCustomConfirm(title, message, onConfirm) {
+        const modal = document.getElementById("customConfirmModal");
+        document.getElementById("confirmModalTitle").textContent = title;
+        document.getElementById("confirmModalMessage").textContent = message;
+        
+        const actionBtn = document.getElementById("confirmModalActionBtn");
+        const newActionBtn = actionBtn.cloneNode(true);
+        actionBtn.parentNode.replaceChild(newActionBtn, actionBtn);
+        
+        newActionBtn.addEventListener("click", () => {
+            closeConfirmModal();
+            if (typeof onConfirm === "function") onConfirm();
+        });
+        
+        modal.classList.remove("hidden");
+    }
+
+    function closeConfirmModal() {
+        document.getElementById("customConfirmModal").classList.add("hidden");
+    }
+
+    function loadCartFromStorage() {
+        try {
+            const savedCart = localStorage.getItem(CART_STORAGE_KEY);
+            cart = savedCart ? JSON.parse(savedCart) : [];
+        } catch (e) {
+            console.error("Error al cargar el carrito de localStorage:", e);
+            cart = [];
+        }
+        updateCartBadge();
+        renderCartDrawer();
+    }
+
+    function saveCartToStorage() {
+        try {
+            localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+        } catch (e) {
+            console.error("Error al guardar el carrito en localStorage:", e);
+        }
+        updateCartBadge();
+        renderCartDrawer();
+    }
+
+    function addToCart(productId) {
+        const prod = products.find(p => String(p.id) === String(productId));
+        if (!prod) return;
+
+        const maxQty = getProductStockQty(prod);
+        const existingItemIndex = cart.findIndex(item => String(item.id) === String(productId));
+        const currentQty = existingItemIndex > -1 ? cart[existingItemIndex].quantity : 0;
+
+        if (currentQty + 1 > maxQty) {
+            showToast("Límite de Stock Alcanzado", `Solo disponemos de ${maxQty} unidad(es) de "${prod.name}".`);
+            return;
+        }
+
+        if (existingItemIndex > -1) {
+            cart[existingItemIndex].quantity += 1;
+            cart[existingItemIndex].stockQuantity = maxQty;
+        } else {
+            cart.push({
+                id: prod.id,
+                name: prod.name,
+                priceUSD: parseFloat(prod.priceUSD) || 0,
+                image: prod.image || DEFAULT_IMAGE_PLACEHOLDER,
+                stock: prod.stock,
+                stockQuantity: maxQty,
+                quantity: 1
+            });
+        }
+
+        saveCartToStorage();
+        showToast("¡Producto añadido!", `Se agregó "${prod.name}" al carrito.`);
+    }
+
+    function updateCartItemQuantity(productId, delta) {
+        const index = cart.findIndex(item => String(item.id) === String(productId));
+        if (index > -1) {
+            const item = cart[index];
+            const prod = products.find(p => String(p.id) === String(productId));
+            const maxQty = prod ? getProductStockQty(prod) : parseInt(item.stockQuantity ?? 0);
+
+            if (delta > 0 && (item.quantity + delta > maxQty)) {
+                showToast("Límite de Stock", `Solo hay ${maxQty} unidad(es) disponibles en almacén.`);
+                return;
+            }
+
+            cart[index].quantity += delta;
+            if (cart[index].quantity <= 0) {
+                cart.splice(index, 1);
+            }
+            saveCartToStorage();
+        }
+    }
+
+    function removeFromCart(productId) {
+        cart = cart.filter(item => String(item.id) !== String(productId));
+        saveCartToStorage();
+    }
+
+    function clearCart() {
+        if (cart.length === 0) return;
+        showCustomConfirm(
+            "Vaciar Carrito",
+            "¿Estás seguro de que deseas eliminar todos los productos de tu carrito de compras?",
+            () => {
+                cart = [];
+                saveCartToStorage();
+            }
+        );
+    }
+
+    function updateCartBadge() {
+        const badge = document.getElementById("cartBadge");
+        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+        if (badge) {
+            badge.textContent = totalItems;
+            badge.classList.add("scale-125");
+            setTimeout(() => badge.classList.remove("scale-125"), 200);
+        }
+    }
+
+    function toggleCartDrawer(open) {
+        const overlay = document.getElementById("cartDrawerOverlay");
+        const drawer = document.getElementById("cartDrawerContent");
+
+        if (open) {
+            overlay.classList.remove("invisible", "opacity-0");
+            overlay.classList.add("opacity-100");
+            drawer.classList.remove("translate-x-full");
+            renderCartDrawer();
+        } else {
+            overlay.classList.remove("opacity-100");
+            overlay.classList.add("opacity-0");
+            drawer.classList.add("translate-x-full");
+            setTimeout(() => {
+                overlay.classList.add("invisible");
+            }, 300);
+        }
+    }
+
+    function renderCartDrawer() {
+        const container = document.getElementById("cartItemsList");
+        const totalItemsText = document.getElementById("cartTotalItemsText");
+        const subtotalUSD = document.getElementById("cartSubtotalUSD");
+        const subtotalBS = document.getElementById("cartSubtotalBS");
+        const orderBtn = document.getElementById("cartWhatsAppOrderBtn");
+        const bcvRate = parseFloat(document.getElementById("bcvRateInput").value) || 787.63;
+
+        const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+        totalItemsText.textContent = `(${totalCount} ${totalCount === 1 ? 'producto' : 'productos'})`;
+
+        if (cart.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-16 px-4">
+                    <div class="w-16 h-16 rounded-2xl bg-navy-950 border border-brandPurple-500/20 flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-shopping-cart text-2xl text-brandPurple-400/50"></i>
+                    </div>
+                    <h4 class="text-base font-bold text-gray-300">Tu carrito está vacío</h4>
+                    <p class="text-xs text-gray-500 mt-1 max-w-xs mx-auto">Explora nuestro catálogo y agrega los peces o accesorios de tu preferencia.</p>
+                </div>
+            `;
+            subtotalUSD.textContent = "$0.00";
+            subtotalBS.textContent = "Bs. 0,00";
+            orderBtn.href = "#";
+            orderBtn.classList.add("opacity-50", "pointer-events-none");
+            return;
+        }
+
+        orderBtn.classList.remove("opacity-50", "pointer-events-none");
+
+        let totalUSD = 0;
+
+        container.innerHTML = cart.map(item => {
+            const itemTotalUSD = item.priceUSD * item.quantity;
+            totalUSD += itemTotalUSD;
+            const itemPriceBs = (item.priceUSD * bcvRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            const itemWaMsg = encodeURIComponent(
+                `Hola Pechypets! Deseo consultar disponibilidad de este producto en específico:\n\n` +
+                ` ${item.name}\n` +
+                ` Cantidad: ${item.quantity}\n` +
+                ` Precio USD: $${item.priceUSD.toFixed(2)} c/u\n` +
+                ` Precio BCV: Bs. ${itemPriceBs} (Tasa: ${bcvRate})\n\n` +
+                `¿Tienen stock disponible?`
+            );
+
+            return `
+            <div class="bg-navy-950 p-3 rounded-xl border border-gray-800/90 flex flex-col gap-2.5 relative group">
+                <div class="flex items-center gap-3">
+                    <img src="${item.image}" alt="${item.name}" onerror="handleImageError(this)" class="w-14 h-14 rounded-lg object-cover bg-navy-900 border border-gray-800 shrink-0">
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-xs font-bold text-white truncate">${item.name}</h4>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span class="text-xs font-black text-brandPurple-300">$${item.priceUSD.toFixed(2)}</span>
+                            <span class="text-[10px] text-emerald-400 font-semibold">Bs. ${itemPriceBs}</span>
+                        </div>
+                    </div>
+                    <button onclick="removeFromCart('${item.id}')" class="text-gray-500 hover:text-red-400 p-1 transition-colors" title="Eliminar producto">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-gray-800/60 text-xs">
+                    <div class="flex items-center gap-1.5 bg-navy-900 border border-gray-700/80 rounded-lg p-1">
+                        <button onclick="updateCartItemQuantity('${item.id}', -1)" class="w-6 h-6 rounded bg-navy-800 hover:bg-brandPurple-900/80 text-white font-bold flex items-center justify-center transition-colors">-</button>
+                        <span class="px-2 font-bold text-white text-xs">${item.quantity}</span>
+                        <button onclick="updateCartItemQuantity('${item.id}', 1)" class="w-6 h-6 rounded bg-navy-800 hover:bg-brandPurple-900/80 text-white font-bold flex items-center justify-center transition-colors">+</button>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <a href="https://wa.me/584124928723?text=${itemWaMsg}" target="_blank" class="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-md transition-all flex items-center gap-1">
+                            <i class="fab fa-whatsapp"></i> Consultar
+                        </a>
+                        <span class="text-xs font-bold text-white">Subtotal: $${itemTotalUSD.toFixed(2)}</span>
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join("");
+
+        const grandTotalBs = (totalUSD * bcvRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        subtotalUSD.textContent = `$${totalUSD.toFixed(2)}`;
+        subtotalBS.textContent = `Bs. ${grandTotalBs}`;
+
+        let waOrderLines = cart.map((item, idx) => {
+            const itemPriceBs = (item.priceUSD * bcvRate).toFixed(2);
+            return `${idx + 1}. *${item.name}*\n   • Cantidad: ${item.quantity}\n   • Precio: $${item.priceUSD.toFixed(2)} / Bs. ${itemPriceBs}`;
+        }).join("\n");
+
+        const orderWaMessage = encodeURIComponent(
+            `Hola Pechypets! Quisiera solicitar la confirmación de disponibilidad para el siguiente PEDIDO COMPLETO DE MI CARRITO:\n\n` +
+            `${waOrderLines}\n\n` +
+            `---------------------------\n` +
+            ` SUBTOTAL TOTAL ESTIMADO:\n` +
+            ` USD: $${totalUSD.toFixed(2)}\n` +
+            ` Bolívares: Bs. ${grandTotalBs} (Tasa BCV: ${bcvRate})\n\n` +
+            `Quedo atento para coordinar el pago y envío por ZOOM/MRW o TEALCA. ¡Gracias!`
+        );
+
+        orderBtn.href = `https://wa.me/584124928723?text=${orderWaMessage}`;
+    }
+
+    function showToast(title, message) {
+        const toast = document.getElementById("toastNotification");
+        document.getElementById("toastTitle").textContent = title;
+        document.getElementById("toastMessage").textContent = message;
+
+        toast.classList.remove("translate-x-full", "opacity-0", "pointer-events-none");
+        toast.classList.add("translate-x-0", "opacity-100");
+
+        setTimeout(() => {
+            toast.classList.remove("translate-x-0", "opacity-100");
+            toast.classList.add("translate-x-full", "opacity-0", "pointer-events-none");
+        }, 3000);
+    }
+
+    function checkCookieConsent() {
+        const banner = document.getElementById("cookieBanner");
+        if (localStorage.getItem("pechypets_cookies_accepted") === "true" && banner) {
+            banner.classList.add("hidden");
+        }
+    }
+
+    function acceptCookies() {
+        localStorage.setItem("pechypets_cookies_accepted", "true");
+        const banner = document.getElementById("cookieBanner");
+        if (banner) {
+            banner.classList.add("hidden");
+        }
+    }
+
+    function toggleSocialMenu(e) {
+        if (e) e.stopPropagation();
+        const dropdown = document.getElementById("socialDropdown");
+        const chevron = document.getElementById("socialChevron");
+        dropdown.classList.toggle("hidden");
+        chevron.classList.toggle("rotate-180");
+    }
+
+    document.addEventListener("click", (e) => {
+        const btn = document.getElementById("socialBtn");
+        const dropdown = document.getElementById("socialDropdown");
+        if (btn && dropdown && !btn.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add("hidden");
+            const chevron = document.getElementById("socialChevron");
+            if (chevron) chevron.classList.remove("rotate-180");
+        }
+    });
+
+    async function fetchProductsFromSupabase() {
+        const spinner = document.getElementById("loadingSpinner");
+        const grid = document.getElementById("productGrid");
+
+        try {
+            if (spinner) spinner.classList.remove("hidden");
+            if (grid) grid.classList.add("hidden");
+
+            const { data, error } = await supabaseClient
+                .from('products')
+                .select('*')
+                .order('id', { ascending: false });
+
+            if (error) throw error;
+
+            products = data || [];
+            filterProducts();
+        } catch (err) {
+            console.error("Error al cargar productos de Supabase:", err);
+        } finally {
+            if (spinner) spinner.classList.add("hidden");
+            if (grid) grid.classList.remove("hidden");
+        }
+    }
+
+    async function checkUserSession() {
+        const { data } = await supabaseClient.auth.getSession();
+        currentUser = data.session ? data.session.user : null;
+        updateUIForAdmin();
+
+        supabaseClient.auth.onAuthStateChange((_event, session) => {
+            currentUser = session ? session.user : null;
+            updateUIForAdmin();
+            filterProducts();
+        });
+    }
+
+    function updateUIForAdmin() {
+        const authBtn = document.getElementById("adminAuthBtn");
+        const addBtn = document.getElementById("adminAddBtn");
+        const authText = document.getElementById("adminAuthText");
+        const authIcon = document.getElementById("adminAuthIcon");
+
+        if (currentUser) {
+            authBtn.classList.remove("hidden");
+            authBtn.classList.add("flex");
+            addBtn.classList.remove("hidden");
+            addBtn.classList.add("flex");
+            authText.textContent = "Salir";
+            authIcon.className = "fas fa-sign-out-alt text-red-400";
+        } else {
+            authBtn.classList.add("hidden");
+            authBtn.classList.remove("flex");
+            addBtn.classList.add("hidden");
+            addBtn.classList.remove("flex");
+            authText.textContent = "Admin";
+            authIcon.className = "fas fa-lock text-brandPurple-400";
+        }
+    }
+
+    function toggleAdminSession() {
+        if (currentUser) {
+            showCustomConfirm(
+                "Cerrar Sesión",
+                "¿Deseas salir del panel de administración de Pechypets?",
+                () => supabaseClient.auth.signOut()
+            );
+        } else {
+            openLoginModal();
+        }
+    }
+
+    function openLoginModal() {
+        document.getElementById("loginModal").classList.remove("hidden");
+        document.getElementById("loginError").classList.add("hidden");
+        const emailInput = document.getElementById("loginEmail");
+        if (emailInput) emailInput.focus();
+    }
+
+    function closeLoginModal() {
+        document.getElementById("loginModal").classList.add("hidden");
+    }
+
+    // Acceso oculto al panel de administración vía pechypets.netlify.app/#admin
+    // (el botón "Admin" permanece oculto para visitantes; esta es la única entrada)
+    function checkAdminHash() {
+        if (window.location.hash === '#admin') {
+            openLoginModal();
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', checkAdminHash);
+    window.addEventListener('hashchange', checkAdminHash);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const loginModal = document.getElementById('loginModal');
+            if (loginModal && !loginModal.classList.contains('hidden')) {
+                closeLoginModal();
+            }
+        }
+    });
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById("loginEmail").value;
+        const password = document.getElementById("loginPassword").value;
+        const errorEl = document.getElementById("loginError");
+        const btn = document.getElementById("loginSubmitBtn");
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Entrando...`;
+            errorEl.classList.add("hidden");
+
+            const { error } = await supabaseClient.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) throw error;
+
+            closeLoginModal();
+        } catch (err) {
+            errorEl.textContent = "Credenciales incorrectas: " + err.message;
+            errorEl.classList.remove("hidden");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<span>Iniciar Sesión</span>`;
+        }
+    }
+
+    function openProductModal(productId = null) {
+        const modal = document.getElementById("productModal");
+        const title = document.getElementById("modalTitle");
+        const errorEl = document.getElementById("modalError");
+
+        errorEl.classList.add("hidden");
+        document.getElementById("prodImageFile").value = "";
+
+        if (productId) {
+            const prod = products.find(p => String(p.id) === String(productId));
+            if (!prod) return;
+
+            title.textContent = "Editar Producto";
+            document.getElementById("prodId").value = prod.id;
+            document.getElementById("prodName").value = prod.name;
+            document.getElementById("prodPriceUSD").value = prod.priceUSD;
+            document.getElementById("prodModule").value = prod.module;
+            document.getElementById("prodCategory").value = prod.category;
+            document.getElementById("prodStock").value = prod.stock;
+            document.getElementById("prodStockQty").value = getProductStockQty(prod);
+            document.getElementById("prodDescription").value = prod.description || "";
+            document.getElementById("prodImageUrl").value = prod.image || "";
+            document.getElementById("existingImageUrl").value = prod.image || "";
+        } else {
+            title.textContent = "Agregar Nuevo Producto";
+            document.getElementById("prodId").value = "";
+            document.getElementById("prodName").value = "";
+            document.getElementById("prodPriceUSD").value = "";
+            document.getElementById("prodModule").value = "agua";
+            document.getElementById("prodCategory").value = "Pez Vivo";
+            document.getElementById("prodStock").value = "Disponible";
+            document.getElementById("prodStockQty").value = "5";
+            document.getElementById("prodDescription").value = "";
+            document.getElementById("prodImageUrl").value = "";
+            document.getElementById("existingImageUrl").value = "";
+        }
+
+        modal.classList.remove("hidden");
+    }
+
+    function closeProductModal() {
+        document.getElementById("productModal").classList.add("hidden");
+    }
+
+    async function handleSaveProduct(e) {
+        e.preventDefault();
+
+        const id = document.getElementById("prodId").value;
+        const name = document.getElementById("prodName").value.trim();
+        const priceUSD = parseFloat(document.getElementById("prodPriceUSD").value);
+        const moduleVal = document.getElementById("prodModule").value;
+        const category = document.getElementById("prodCategory").value;
+        const stock = document.getElementById("prodStock").value;
+        const stockQuantity = parseInt(document.getElementById("prodStockQty").value) || 0;
+        const description = document.getElementById("prodDescription").value.trim();
+        const fileInput = document.getElementById("prodImageFile");
+        const urlInput = document.getElementById("prodImageUrl").value.trim();
+        const existingUrl = document.getElementById("existingImageUrl").value;
+        const errorEl = document.getElementById("modalError");
+        const saveBtn = document.getElementById("saveProdBtn");
+
+        try {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Guardando...`;
+            errorEl.classList.add("hidden");
+
+            let finalImageUrl = existingUrl || DEFAULT_IMAGE_PLACEHOLDER;
+
+            if (fileInput.files && fileInput.files[0]) {
+                const file = fileInput.files[0];
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+                const { error: uploadError } = await supabaseClient.storage
+                    .from('product-images')
+                    .upload(fileName, file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: publicUrlData } = supabaseClient.storage
+                    .from('product-images')
+                    .getPublicUrl(fileName);
+
+                finalImageUrl = publicUrlData.publicUrl;
+            } else if (urlInput !== "") {
+                finalImageUrl = urlInput;
+            }
+
+            const payload = {
+                name,
+                priceUSD,
+                module: moduleVal,
+                category,
+                stock,
+                stock_quantity: stockQuantity,
+                description,
+                image: finalImageUrl
+            };
+
+            if (id) {
+                let { error } = await supabaseClient
+                    .from('products')
+                    .update(payload)
+                    .eq('id', id);
+
+                // Si la columna stock_quantity no existe en la BD de Supabase, reintentar automáticamente sin ella y notificar
+                if (error && (error.message.includes('stock_quantity') || error.message.includes('schema cache') || error.code === 'PGRST204')) {
+                    delete payload.stock_quantity;
+                    const retry = await supabaseClient
+                        .from('products')
+                        .update(payload)
+                        .eq('id', id);
+                    error = retry.error;
+                    showToast("Atención Supabase", "Crea la columna 'stock_quantity' en Supabase para guardar cantidades específicas.");
+                }
+
+                if (error) throw error;
+            } else {
+                let { error } = await supabaseClient
+                    .from('products')
+                    .insert([payload]);
+
+                // Si la columna stock_quantity no existe en la BD de Supabase, reintentar automáticamente sin ella y notificar
+                if (error && (error.message.includes('stock_quantity') || error.message.includes('schema cache') || error.code === 'PGRST204')) {
+                    delete payload.stock_quantity;
+                    const retry = await supabaseClient
+                        .from('products')
+                        .insert([payload]);
+                    error = retry.error;
+                    showToast("Atención Supabase", "Crea la columna 'stock_quantity' en Supabase para guardar cantidades específicas.");
+                }
+
+                if (error) throw error;
+            }
+
+            closeProductModal();
+            await fetchProductsFromSupabase();
+
+        } catch (err) {
+            errorEl.textContent = "Error al guardar el producto: " + err.message;
+            errorEl.classList.remove("hidden");
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<span>Guardar Producto</span>`;
+        }
+    }
+
+    async function deleteProduct(productId) {
+        showCustomConfirm(
+            "Eliminar Producto",
+            "¿Estás seguro de que deseas eliminar este producto del catálogo permanentemente?",
+            async () => {
+                try {
+                    const { error } = await supabaseClient
+                        .from('products')
+                        .delete()
+                        .eq('id', productId);
+
+                    if (error) throw error;
+
+                    await fetchProductsFromSupabase();
+                    showToast("Producto Eliminado", "El producto se eliminó correctamente.");
+                } catch (err) {
+                    showToast("Error", "No se pudo eliminar el producto: " + err.message);
+                }
+            }
+        );
+    }
+
+    function handleImageError(img) {
+        img.onerror = null;
+        img.src = DEFAULT_IMAGE_PLACEHOLDER;
+    }
+
+    function switchModule(moduleName) {
+        currentModule = moduleName;
+        
+        const tabs = {
+            all: document.getElementById("tabAll"),
+            agua: document.getElementById("tabWater"),
+            tierra: document.getElementById("tabLand")
+        };
+
+        Object.keys(tabs).forEach(key => {
+            if (key === moduleName) {
+                tabs[key].className = "module-tab w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-gradient-to-r from-brandPurple-600 to-indigo-600 text-white shadow-neon-purple text-center";
+            } else {
+                tabs[key].className = "module-tab w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all text-gray-300 hover:text-white hover:bg-navy-800 text-center";
+            }
+        });
+
+        filterProducts();
+    }
+
+    function filterProducts() {
+        const searchTerm = document.getElementById("searchInput").value.toLowerCase().trim();
+        const selectedCategory = document.getElementById("categoryFilter").value;
+        const selectedStock = document.getElementById("stockFilter").value;
+
+        currentFilteredProducts = products.filter(item => {
+            const matchesModule = (currentModule === "all") || (item.module === currentModule);
+            const matchesSearch = item.name.toLowerCase().includes(searchTerm) || 
+                                  (item.description && item.description.toLowerCase().includes(searchTerm)) ||
+                                  item.category.toLowerCase().includes(searchTerm);
+            const matchesCategory = (selectedCategory === "all") || (item.category === selectedCategory);
+            const matchesStock = (selectedStock === "all") || (item.stock === selectedStock);
+
+            return matchesModule && matchesSearch && matchesCategory && matchesStock;
+        });
+
+        visibleCount = 15;
+        renderProducts();
+    }
+
+    function loadMoreProducts() {
+        visibleCount += 15;
+        renderProducts();
+    }
+
+    function renderProducts() {
+        const grid = document.getElementById("productGrid");
+        const noResults = document.getElementById("noResults");
+        const loadMoreContainer = document.getElementById("loadMoreContainer");
+        const bcvRate = parseFloat(document.getElementById("bcvRateInput").value) || 787.63;
+
+        if (currentFilteredProducts.length === 0) {
+            grid.innerHTML = "";
+            noResults.classList.remove("hidden");
+            if (loadMoreContainer) loadMoreContainer.classList.add("hidden");
+            return;
+        }
+
+        noResults.classList.add("hidden");
+
+        const itemsToRender = currentFilteredProducts.slice(0, visibleCount);
+
+        grid.innerHTML = itemsToRender.map(product => {
+            const numPrice = parseFloat(product.priceUSD) || 0;
+            const priceBs = (numPrice * bcvRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const maxStock = getProductStockQty(product);
+            
+            const isAvailable = product.stock === "Disponible" && maxStock > 0;
+            const stockBadgeClass = isAvailable 
+                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" 
+                : "bg-amber-500/20 text-amber-300 border-amber-500/40";
+
+            const stockLabel = isAvailable 
+                ? `${product.stock} (${maxStock} disp.)` 
+                : (maxStock <= 0 ? "Agotado" : product.stock);
+
+            const waMessage = encodeURIComponent(
+                `Hola Pechypets! Deseo consultar disponibilidad del producto:\n\n` +
+                ` ${product.name}\n` +
+                ` Precio USD: $${numPrice.toFixed(2)}\n` +
+                ` Precio BCV: Bs. ${priceBs} (Tasa: ${bcvRate})\n` +
+                ` Estado: ${stockLabel}\n\n` +
+                `¿Tienen disponibilidad y coordinan envío por ZOOM/MRW o TEALCA?`
+            );
+
+            const adminControls = currentUser ? `
+                <div class="flex items-center gap-2 mt-3 pt-3 border-t border-gray-800">
+                    <button onclick="openProductModal('${product.id}')" class="flex-1 py-1.5 px-3 bg-amber-500/20 hover:bg-amber-600 text-amber-300 hover:text-white rounded-lg text-xs font-semibold border border-amber-500/30 transition-all flex items-center justify-center gap-1">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button onclick="deleteProduct('${product.id}')" class="flex-1 py-1.5 px-3 bg-red-500/20 hover:bg-red-600 text-red-300 hover:text-white rounded-lg text-xs font-semibold border border-red-500/30 transition-all flex items-center justify-center gap-1">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </div>
+            ` : '';
+
+            return `
+            <div class="bg-navy-900 rounded-2xl overflow-hidden purple-glow-border flex flex-col justify-between group transition-all duration-300">
+                <div>
+                    <!-- CÓDIGO CORREGIDO -->
+<div class="relative w-full aspect-[4/3] bg-navy-950 overflow-hidden">
+                        <img src="${product.image || DEFAULT_IMAGE_PLACEHOLDER}" 
+                             alt="${product.name}" 
+                             loading="lazy"
+                             onerror="handleImageError(this)"
+                             class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        
+                        <div class="absolute top-3 right-3 flex justify-end items-center pointer-events-none">
+                            <span class="text-[10px] uppercase font-bold px-2.5 py-1 rounded-lg border backdrop-blur-md ${stockBadgeClass}">
+                                <i class="fas ${isAvailable ? 'fa-check-circle' : 'fa-clock'} mr-1"></i> ${stockLabel}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="p-5">
+                        <h3 class="font-bold text-white text-base leading-snug group-hover:text-brandPurple-300 transition-colors line-clamp-2">
+                            ${product.name}
+                        </h3>
+                        <p class="text-xs text-gray-400 mt-2 line-clamp-3 leading-relaxed">
+                            ${product.description || 'Sin descripción disponible.'}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-5 pt-0 mt-auto">
+                    <div class="bg-navy-950 p-3 rounded-xl border border-gray-800/80 mb-4 flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] text-gray-400 font-medium block">Precio Base USD</span>
+                            <span class="text-xl font-black text-white">$${numPrice.toFixed(2)}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-brandPurple-300 font-semibold block">Tasa BCV (${bcvRate})</span>
+                            <span class="text-sm font-extrabold text-emerald-400">Bs. ${priceBs}</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="addToCart('${product.id}')" 
+                                class="py-2.5 px-2 rounded-xl bg-gradient-to-r from-brandPurple-600 to-indigo-600 hover:from-brandPurple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md hover:shadow-neon-purple active:scale-95"
+                                title="Añadir este producto a tu carrito de compras">
+                            <i class="fas fa-cart-plus text-xs sm:text-sm"></i>
+                            <span class="truncate">Añadir</span>
+                        </button>
+
+                        <a href="https://wa.me/584124928723?text=${waMessage}" target="_blank"
+                           class="py-2.5 px-2 rounded-xl bg-navy-800 hover:bg-emerald-950/60 text-emerald-400 border border-emerald-500/40 hover:border-emerald-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                           title="Consultar por WhatsApp">
+                            <i class="fab fa-whatsapp text-sm"></i>
+                            <span class="truncate">Consultar</span>
+                        </a>
+                    </div>
+
+                    ${adminControls}
+                </div>
+            </div>
+            `;
+        }).join("");
+
+        if (loadMoreContainer) {
+            if (visibleCount < currentFilteredProducts.length) {
+                loadMoreContainer.classList.remove("hidden");
+            } else {
+                loadMoreContainer.classList.add("hidden");
+            }
+        }
+    }
+    </script>
+</body>
+</html>
